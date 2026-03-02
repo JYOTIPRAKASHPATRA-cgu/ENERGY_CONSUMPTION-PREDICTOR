@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EnergyAI — Consumption Prediction Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #03080f;
+    --bg2: #060e1a;
+    --bg3: #0a1525;
+    --panel: #0d1e35;
+    --panel2: #102240;
+    --border: rgba(0,180,230,0.12);
+    --teal: #00b4e6;
+    --teal2: #00d4ff;
+    --orange: #ff6b2b;
+    --orange2: #ff8c55;
+    --green: #00e5a0;
+    --purple: #7c3aed;
+    --white: #f0f8ff;
+    --gray: #6b8fa8;
+    --gray2: #4a6a82;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-body: 'Instrument Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── GRID OVERLAY ─────────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,180,230,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,180,230,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NOISE TEXTURE ──────────────────────────────────── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ──────────────────────────────────────────────── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    height: 64px;
+    background: rgba(3,8,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    color: var(--teal2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--teal), var(--orange));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .nav-links {
+    display: flex; gap: 32px; list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gray);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--teal2); }
+
+  .nav-cta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--teal);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .nav-cta:hover { background: var(--teal2); transform: translateY(-1px); }
+
+  /* ── HERO ─────────────────────────────────────────────── */
+  #hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 120px 48px 80px;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .hero-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+  }
+
+  .hero-glow-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,180,230,0.12), transparent 70%);
+    top: -100px; left: -100px;
+  }
+
+  .hero-glow-2 {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(255,107,43,0.08), transparent 70%);
+    bottom: 0; right: 100px;
+  }
+
+  .hero-content {
+    max-width: 700px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--teal);
+    border: 1px solid rgba(0,180,230,0.3);
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .hero-h1 {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .hero-h1 .accent { color: var(--teal2); }
+  .hero-h1 .accent2 { color: var(--orange); }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--gray);
+    max-width: 540px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--teal);
+    color: var(--bg);
+    padding: 14px 28px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--teal2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,180,230,0.3);
+  }
+
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--white);
+    padding: 14px 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+    transform: translateY(-2px);
+  }
+
+  .hero-visual {
+    position: absolute;
+    right: 48px; top: 50%; transform: translateY(-50%);
+    width: 520px;
+    animation: fadeUp 0.8s 0.4s ease both;
+    z-index: 2;
+  }
+
+  /* ── STATS BAR ─────────────────────────────────────────── */
+  #stats-bar {
+    position: relative; z-index: 1;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .stat-item { text-align: center; }
+
+  .stat-val {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+
+  /* ── SECTIONS ─────────────────────────────────────────── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 100px 48px;
+  }
+
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    line-height: 1.1;
+  }
+
+  .section-sub {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--gray);
+    max-width: 560px;
+  }
+
+  /* ── LIVE DASHBOARD ──────────────────────────────────── */
+  #dashboard {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    margin-top: 48px;
+  }
+
+  .dash-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .dash-card:hover {
+    border-color: rgba(0,180,230,0.3);
+    transform: translateY(-2px);
+  }
+
+  .dash-card.span2 { grid-column: span 2; }
+  .dash-card.span3 { grid-column: span 3; }
+
+  .card-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray2);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .card-label::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+  }
+
+  .card-value {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .card-meta {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--gray);
+  }
+
+  .card-delta {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    border-radius: 100px;
+    margin-top: 8px;
+  }
+
+  .card-delta.up { background: rgba(0,229,160,0.12); color: var(--green); }
+  .card-delta.down { background: rgba(255,107,43,0.12); color: var(--orange); }
+
+  canvas { max-width: 100%; }
+
+  /* ── MINI BAR SPARKLINES ─────────────────────────────── */
+  .sparkline {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 40px;
+    margin-top: 14px;
+  }
+
+  .spark-bar {
+    flex: 1;
+    background: rgba(0,180,230,0.2);
+    border-radius: 2px;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .spark-bar::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--teal);
+    border-radius: 2px;
+    animation: sparkGrow 1s ease both;
+  }
+
+  @keyframes sparkGrow {
+    from { height: 0; }
+    to { height: 100%; }
+  }
+
+  .spark-bar:hover { background: rgba(0,180,230,0.4); }
+
+  /* ── PREDICTION TOOL ─────────────────────────────────── */
+  #predict {
+    background: var(--bg);
+  }
+
+  .predict-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-top: 56px;
+    align-items: start;
+  }
+
+  .predict-form {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  .form-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: 10px;
+  }
+
+  .form-input, .form-select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+
+  .form-input:focus, .form-select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(0,180,230,0.1);
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .range-wrapper { position: relative; }
+
+  .form-range {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--panel2);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: var(--teal);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,180,230,0.5);
+  }
+
+  .range-value {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--teal2);
+    text-align: right;
+    margin-top: 6px;
+  }
+
+  .predict-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--teal), var(--teal2));
+    color: var(--bg);
+    border: none;
+    padding: 16px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .predict-btn:hover {
+    box-shadow: 0 8px 30px rgba(0,180,230,0.4);
+    transform: translateY(-2px);
+  }
+
+  .predict-result {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+  }
+
+  .result-header {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray2);
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+
+  .result-main {
+    margin-bottom: 28px;
+  }
+
+  .result-kwh {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--teal2);
+    margin-bottom: 6px;
+  }
+
+  .result-unit {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--gray);
+  }
+
+  .result-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 24px 0;
+  }
+
+  .result-bar-item {}
+
+  .result-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--gray);
+    margin-bottom: 6px;
+  }
+
+  .result-bar-track {
+    height: 6px;
+    background: var(--panel2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .result-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    background: rgba(0,229,160,0.1);
+    color: var(--green);
+    border: 1px solid rgba(0,229,160,0.2);
+    padding: 6px 14px;
+    border-radius: 100px;
+  }
+
+  /* ── HOW IT WORKS ──────────────────────────────────── */
+  #how {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 56px;
+  }
+
+  .step {
+    background: var(--panel);
+    padding: 36px 28px;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .step:hover { background: var(--panel2); }
+
+  .step-num {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: rgba(0,180,230,0.1);
+    line-height: 1;
+    margin-bottom: 20px;
+    letter-spacing: -0.03em;
+  }
+
+  .step-icon {
+    font-size: 1.8rem;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .step-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .step-desc {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--gray);
+  }
+
+  /* ── MODELS ─────────────────────────────────────────── */
+  #models {
+    background: var(--bg);
+  }
+
+  .models-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 56px;
+  }
+
+  .model-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s;
+  }
+
+  .model-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .model-card:nth-child(1)::before { background: var(--teal); }
+  .model-card:nth-child(2)::before { background: var(--orange); }
+  .model-card:nth-child(3)::before { background: var(--green); }
+  .model-card:nth-child(4)::before { background: var(--purple); }
+  .model-card:nth-child(5)::before { background: var(--teal2); }
+  .model-card:nth-child(6)::before { background: var(--orange2); }
+
+  .model-card:hover {
+    border-color: rgba(0,180,230,0.25);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  }
+
+  .model-badge {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+    display: inline-block;
+  }
+
+  .model-badge.deep { background: rgba(0,180,230,0.12); color: var(--teal); }
+  .model-badge.ensemble { background: rgba(255,107,43,0.12); color: var(--orange); }
+  .model-badge.hybrid { background: rgba(0,229,160,0.12); color: var(--green); }
+
+  .model-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .model-desc {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--gray);
+    margin-bottom: 20px;
+  }
+
+  .model-accuracy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .model-acc-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--gray2);
+  }
+
+  .model-acc-val {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+
+  .model-bar {
+    height: 4px;
+    background: var(--panel2);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .model-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0;
+  }
+
+  /* ── USE CASES ──────────────────────────────────────── */
+  #usecases {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+  }
+
+  .cases-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 56px;
+  }
+
+  .case-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    transition: all 0.25s;
+  }
+
+  .case-card:hover {
+    border-color: rgba(0,180,230,0.25);
+    transform: translateY(-3px);
+  }
+
+  .case-icon {
+    width: 52px; height: 52px; flex-shrink: 0;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+  }
+
+  .case-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .case-desc {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--gray);
+    margin-bottom: 14px;
+  }
+
+  .case-savings {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--green);
+  }
+
+  /* ── FOOTER ──────────────────────────────────────────── */
+  footer {
+    position: relative; z-index: 1;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 64px 48px 40px;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 48px;
+  }
+
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--teal2);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .footer-about {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--gray);
+    margin-bottom: 20px;
+  }
+
+  .footer-heading {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray2);
+    margin-bottom: 16px;
+  }
+
+  .footer-links { list-style: none; }
+  .footer-links li { margin-bottom: 10px; }
+  .footer-links a {
+    font-size: 0.88rem;
+    color: var(--gray);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--teal); }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--gray2);
+  }
+
+  /* ── ANIMATIONS ──────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── LIVE CHART CONTAINER ─────────────────────────────── */
+  .chart-container {
+    position: relative;
+    height: 260px;
+  }
+
+  /* ── SCROLLING TICKER ─────────────────────────────────── */
+  .ticker-wrap {
+    overflow: hidden;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    position: relative; z-index: 1;
+  }
+
+  .ticker-track {
+    display: flex;
+    gap: 64px;
+    animation: scroll 30s linear infinite;
+    white-space: nowrap;
+  }
+
+  .ticker-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--gray);
+    flex-shrink: 0;
+  }
+
+  .ticker-item .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .ticker-item.green .dot { background: var(--green); }
+  .ticker-item.orange .dot { background: var(--orange); }
+  .ticker-item.teal .dot { background: var(--teal); }
+
+  @keyframes scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ── RESPONSIVE ──────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .hero-visual { display: none; }
+    .dashboard-grid { grid-template-columns: 1fr 1fr; }
+    .dash-card.span2, .dash-card.span3 { grid-column: span 2; }
+  }
+
+  @media (max-width: 800px) {
+    nav { padding: 0 20px; }
+    nav .nav-links { display: none; }
+    section, #hero { padding: 80px 24px; }
+    #stats-bar { padding: 28px 24px; }
+    .dashboard-grid, .predict-grid, .steps-grid, .models-grid, .cases-grid { grid-template-columns: 1fr; }
+    .dash-card.span2, .dash-card.span3 { grid-column: span 1; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">⚡</div>
+    ENERGYAI
+  </div>
+  <ul class="nav-links">
+    <li><a href="#dashboard">Dashboard</a></li>
+    <li><a href="#predict">Predict</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#models">Models</a></li>
+  </ul>
+  <button class="nav-cta">Get Started</button>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap" style="margin-top:64px;">
+  <div class="ticker-track" id="ticker">
+    <span class="ticker-item green"><span class="dot"></span> GRID LOAD: 847 MW — STABLE</span>
+    <span class="ticker-item teal"><span class="dot"></span> FORECAST ACCURACY: 96.8%</span>
+    <span class="ticker-item orange"><span class="dot"></span> PEAK DEMAND: 18:30 EST — 1,240 MW</span>
+    <span class="ticker-item green"><span class="dot"></span> SOLAR OUTPUT: +23% vs YESTERDAY</span>
+    <span class="ticker-item teal"><span class="dot"></span> CO₂ SAVED: 142 TONS TODAY</span>
+    <span class="ticker-item orange"><span class="dot"></span> WIND GENERATION: 380 MW ONLINE</span>
+    <span class="ticker-item green"><span class="dot"></span> DEMAND RESPONSE ACTIVE: 5 ZONES</span>
+    <span class="ticker-item teal"><span class="dot"></span> MODEL RETRAIN: COMPLETED 06:00 UTC</span>
+    <!-- duplicate for seamless loop -->
+    <span class="ticker-item green"><span class="dot"></span> GRID LOAD: 847 MW — STABLE</span>
+    <span class="ticker-item teal"><span class="dot"></span> FORECAST ACCURACY: 96.8%</span>
+    <span class="ticker-item orange"><span class="dot"></span> PEAK DEMAND: 18:30 EST — 1,240 MW</span>
+    <span class="ticker-item green"><span class="dot"></span> SOLAR OUTPUT: +23% vs YESTERDAY</span>
+    <span class="ticker-item teal"><span class="dot"></span> CO₂ SAVED: 142 TONS TODAY</span>
+    <span class="ticker-item orange"><span class="dot"></span> WIND GENERATION: 380 MW ONLINE</span>
+    <span class="ticker-item green"><span class="dot"></span> DEMAND RESPONSE ACTIVE: 5 ZONES</span>
+    <span class="ticker-item teal"><span class="dot"></span> MODEL RETRAIN: COMPLETED 06:00 UTC</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-glow hero-glow-1"></div>
+  <div class="hero-glow hero-glow-2"></div>
+  <div class="hero-content">
+    <div class="hero-tag">Live Prediction System Active</div>
+    <h1 class="hero-h1">
+      Predict<br>
+      <span class="accent">Energy</span><br>
+      <span class="accent2">Consumption</span><br>
+      with AI
+    </h1>
+    <p class="hero-sub">
+      Machine learning models that forecast energy usage with 96.8% accuracy — helping utilities, industries, and smart buildings cut waste, reduce costs, and build a sustainable future.
+    </p>
+    <div class="hero-actions">
+      <a href="#predict" class="btn-primary">⚡ Run Prediction</a>
+      <a href="#dashboard" class="btn-secondary">View Dashboard →</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <canvas id="heroChart" height="280"></canvas>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div id="stats-bar">
+  <div class="stat-item">
+    <div class="stat-val" style="color:var(--teal2)" id="s1">96.8<span style="font-size:1.4rem">%</span></div>
+    <div class="stat-label">Prediction Accuracy</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val" style="color:var(--orange)">30<span style="font-size:1.4rem">%</span></div>
+    <div class="stat-label">Energy Waste Reduction</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val" style="color:var(--green)">4<span style="font-size:1.4rem">ms</span></div>
+    <div class="stat-label">Inference Latency</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val" style="color:var(--teal)">2.3<span style="font-size:1.4rem">%</span></div>
+    <div class="stat-label">Mean Absolute Error</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-val" style="color:var(--orange2)">$2.4<span style="font-size:1.4rem">B</span></div>
+    <div class="stat-label">Cost Savings Enabled</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<section id="dashboard">
+  <p class="section-tag">// Live Dashboard</p>
+  <h2 class="section-title">Real-Time Energy Intelligence</h2>
+  <p class="section-sub">Monitor actual vs. predicted consumption, grid load, and forecast confidence — updated every 15 minutes.</p>
+
+  <div class="dashboard-grid">
+    <!-- KPI Cards -->
+    <div class="dash-card">
+      <div class="card-label">Current Demand</div>
+      <div class="card-value" style="color:var(--teal2)" id="live-demand">847</div>
+      <div class="card-meta">MW — Northeast Grid</div>
+      <span class="card-delta up">↑ +2.3% vs yesterday</span>
+      <div class="sparkline" id="spark1"></div>
+    </div>
+
+    <div class="dash-card">
+      <div class="card-label">Predicted Peak</div>
+      <div class="card-value" style="color:var(--orange)" id="live-peak">1,240</div>
+      <div class="card-meta">MW — forecast at 18:30</div>
+      <span class="card-delta down">↑ +4.1% above avg</span>
+      <div class="sparkline" id="spark2"></div>
+    </div>
+
+    <div class="dash-card">
+      <div class="card-label">Model Confidence</div>
+      <div class="card-value" style="color:var(--green)" id="live-conf">97.2</div>
+      <div class="card-meta">% confidence score</div>
+      <span class="card-delta up">✓ High accuracy</span>
+      <div class="sparkline" id="spark3"></div>
+    </div>
+
+    <!-- Main Chart -->
+    <div class="dash-card span2">
+      <div class="card-label">24-Hour Actual vs Predicted Consumption (MWh)</div>
+      <div class="chart-container">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Donut Chart -->
+    <div class="dash-card">
+      <div class="card-label">Energy Source Mix</div>
+      <div class="chart-container" style="height:200px">
+        <canvas id="donutChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Weekly Forecast -->
+    <div class="dash-card span3">
+      <div class="card-label">7-Day Demand Forecast (MW)</div>
+      <div class="chart-container" style="height:200px">
+        <canvas id="weekChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICTION TOOL -->
+<section id="predict">
+  <p class="section-tag fade-in">// Interactive Predictor</p>
+  <h2 class="section-title fade-in">Run Your Own Prediction</h2>
+  <p class="section-sub fade-in">Enter building or facility parameters and get an instant AI-powered energy consumption forecast.</p>
+
+  <div class="predict-grid">
+    <div class="predict-form fade-in">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Building Type</label>
+          <select class="form-select" id="buildingType">
+            <option value="office">Office Building</option>
+            <option value="residential">Residential Complex</option>
+            <option value="industrial">Industrial Facility</option>
+            <option value="retail">Retail Center</option>
+            <option value="hospital">Hospital</option>
+            <option value="data-center">Data Center</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Floor Area (m²)</label>
+          <input type="number" class="form-input" id="floorArea" value="5000" min="100" max="100000">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Outside Temperature (°C)</label>
+          <input type="number" class="form-input" id="temperature" value="28" min="-20" max="50">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time of Day</label>
+          <select class="form-select" id="timeOfDay">
+            <option value="morning">Morning (6–12)</option>
+            <option value="afternoon" selected>Afternoon (12–18)</option>
+            <option value="evening">Evening (18–22)</option>
+            <option value="night">Night (22–6)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Occupancy Rate — <span id="occLabel">75%</span></label>
+        <div class="range-wrapper">
+          <input type="range" class="form-range" id="occupancy" min="0" max="100" value="75">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Solar Panel Coverage — <span id="solarLabel">20%</span></label>
+        <div class="range-wrapper">
+          <input type="range" class="form-range" id="solarCoverage" min="0" max="100" value="20">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Day of Week</label>
+          <select class="form-select" id="dayOfWeek">
+            <option>Monday</option>
+            <option>Tuesday</option>
+            <option selected>Wednesday</option>
+            <option>Thursday</option>
+            <option>Friday</option>
+            <option>Saturday</option>
+            <option>Sunday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Season</label>
+          <select class="form-select" id="season">
+            <option>Spring</option>
+            <option>Summer</option>
+            <option selected>Autumn</option>
+            <option>Winter</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="predict-btn" onclick="runPrediction()">⚡ Predict Consumption</button>
+    </div>
+
+    <div class="predict-result fade-in">
+      <div class="result-header">AI Prediction Output — LSTM + XGBoost Ensemble</div>
+      <div class="result-main">
+        <div class="result-kwh" id="result-kwh">—</div>
+        <div class="result-unit" id="result-unit">Enter parameters and run prediction</div>
+      </div>
+
+      <div class="result-bars" id="result-bars" style="display:none">
+        <div class="result-bar-item">
+          <div class="result-bar-label"><span>HVAC Systems</span><span id="hvac-pct">—</span></div>
+          <div class="result-bar-track"><div class="result-bar-fill" id="hvac-bar" style="background:var(--orange);width:0%"></div></div>
+        </div>
+        <div class="result-bar-item">
+          <div class="result-bar-label"><span>Lighting</span><span id="light-pct">—</span></div>
+          <div class="result-bar-track"><div class="result-bar-fill" id="light-bar" style="background:var(--teal);width:0%"></div></div>
+        </div>
+        <div class="result-bar-item">
+          <div class="result-bar-label"><span>Equipment & Computing</span><span id="equip-pct">—</span></div>
+          <div class="result-bar-track"><div class="result-bar-fill" id="equip-bar" style="background:var(--purple);width:0%"></div></div>
+        </div>
+        <div class="result-bar-item">
+          <div class="result-bar-label"><span>Other Systems</span><span id="other-pct">—</span></div>
+          <div class="result-bar-track"><div class="result-bar-fill" id="other-bar" style="background:var(--green);width:0%"></div></div>
+        </div>
+      </div>
+
+      <div id="confidence-row" style="display:none">
+        <span class="confidence-badge">✓ Model Confidence: <span id="conf-score">96.8%</span></span>
+      </div>
+
+      <div style="margin-top:24px; display:none" id="result-chart-wrap">
+        <div class="card-label" style="margin-bottom:14px">Hourly Prediction Profile</div>
+        <div style="height:160px"><canvas id="resultChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <p class="section-tag fade-in">// Process</p>
+  <h2 class="section-title fade-in">How It Works</h2>
+  <p class="section-sub fade-in">Our end-to-end ML pipeline ingests raw data, trains continuously, and delivers real-time predictions via API.</p>
+
+  <div class="steps-grid fade-in">
+    <div class="step">
+      <div class="step-num">01</div>
+      <span class="step-icon">📡</span>
+      <div class="step-title">Data Ingestion</div>
+      <div class="step-desc">Smart meters, IoT sensors, SCADA systems, weather APIs, and historical records stream data continuously into the pipeline.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <span class="step-icon">🔧</span>
+      <div class="step-title">Preprocessing</div>
+      <div class="step-desc">Automated cleaning, outlier detection, normalization, and feature engineering — handling missing values and time-zone corrections.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <span class="step-icon">🧠</span>
+      <div class="step-title">Model Training</div>
+      <div class="step-desc">LSTM, XGBoost, and Random Forest models train on rolling windows. Ensemble stacking combines strengths of each approach.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <span class="step-icon">🚀</span>
+      <div class="step-title">Live Deployment</div>
+      <div class="step-desc">REST API delivers sub-5ms predictions with confidence intervals. Models retrain nightly with the latest data automatically.</div>
+    </div>
+  </div>
+</section>
+
+<!-- MODELS -->
+<section id="models">
+  <p class="section-tag fade-in">// ML Architecture</p>
+  <h2 class="section-title fade-in">Prediction Models</h2>
+  <p class="section-sub fade-in">Six specialized models, each optimized for different forecasting horizons and building types.</p>
+
+  <div class="models-grid">
+    <div class="model-card fade-in">
+      <span class="model-badge deep">Deep Learning</span>
+      <div class="model-name">LSTM Network</div>
+      <div class="model-desc">Long Short-Term Memory captures long-range temporal dependencies in sequential energy time-series data.</div>
+      <div class="model-accuracy">
+        <div>
+          <div class="model-acc-label">Accuracy</div>
+          <div class="model-acc-val" style="color:var(--teal)">96.8%</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray2)">Best for:<br>24-72h horizon</div>
+      </div>
+      <div class="model-bar"><div class="model-bar-fill" style="background:var(--teal)" data-width="96.8"></div></div>
+    </div>
+
+    <div class="model-card fade-in">
+      <span class="model-badge ensemble">Ensemble</span>
+      <div class="model-name">XGBoost</div>
+      <div class="model-desc">Gradient boosting handles complex non-linear patterns and provides strong performance on tabular feature inputs.</div>
+      <div class="model-accuracy">
+        <div>
+          <div class="model-acc-label">Accuracy</div>
+          <div class="model-acc-val" style="color:var(--orange)">95.2%</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray2)">Best for:<br>1-24h horizon</div>
+      </div>
+      <div class="model-bar"><div class="model-bar-fill" style="background:var(--orange)" data-width="95.2"></div></div>
+    </div>
+
+    <div class="model-card fade-in">
+      <span class="model-badge ensemble">Ensemble</span>
+      <div class="model-name">Random Forest</div>
+      <div class="model-desc">Robust ensemble method excels at feature importance ranking and delivers consistent predictions across varied building types.</div>
+      <div class="model-accuracy">
+        <div>
+          <div class="model-acc-label">Accuracy</div>
+          <div class="model-acc-val" style="color:var(--green)">94.1%</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray2)">Best for:<br>Anomaly detection</div>
+      </div>
+      <div class="model-bar"><div class="model-bar-fill" style="background:var(--green)" data-width="94.1"></div></div>
+    </div>
+
+    <div class="model-card fade-in">
+      <span class="model-badge hybrid">Hybrid</span>
+      <div class="model-name">CNN + RNN</div>
+      <div class="model-desc">Convolutional layers extract spatial features from sensor arrays, while recurrent layers model temporal dynamics simultaneously.</div>
+      <div class="model-accuracy">
+        <div>
+          <div class="model-acc-label">Accuracy</div>
+          <div class="model-acc-val" style="color:var(--purple)">97.1%</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray2)">Best for:<br>Multi-sensor grids</div>
+      </div>
+      <div class="model-bar"><div class="model-bar-fill" style="background:var(--purple)" data-width="97.1"></div></div>
+    </div>
+
+    <div class="model-card fade-in">
+      <span class="model-badge deep">Deep Learning</span>
+      <div class="model-name">Transformer</div>
+      <div class="model-desc">Attention mechanisms model both short and long-range temporal relationships for highly accurate week-ahead forecasts.</div>
+      <div class="model-accuracy">
+        <div>
+          <div class="model-acc-label">Accuracy</div>
+          <div class="model-acc-val" style="color:var(--teal2)">97.6%</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray2)">Best for:<br>7-30d horizon</div>
+      </div>
+      <div class="model-bar"><div class="model-bar-fill" style="background:var(--teal2)" data-width="97.6"></div></div>
+    </div>
+
+    <div class="model-card fade-in">
+      <span class="model-badge hybrid">Hybrid</span>
+      <div class="model-name">Stacked Ensemble</div>
+      <div class="model-desc">Meta-learner combines predictions from all five models, adapting weights dynamically based on real-time accuracy signals.</div>
+      <div class="model-accuracy">
+        <div>
+          <div class="model-acc-label">Accuracy</div>
+          <div class="model-acc-val" style="color:var(--orange2)">98.2%</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--gray2)">Best for:<br>Production use</div>
+      </div>
+      <div class="model-bar"><div class="model-bar-fill" style="background:var(--orange2)" data-width="98.2"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section id="usecases">
+  <p class="section-tag fade-in">// Applications</p>
+  <h2 class="section-title fade-in">Real-World Applications</h2>
+  <p class="section-sub fade-in">EnergyAI is deployed across industries worldwide, delivering measurable savings and sustainability gains.</p>
+
+  <div class="cases-grid">
+    <div class="case-card fade-in">
+      <div class="case-icon" style="background:rgba(0,180,230,0.1)">🏙️</div>
+      <div>
+        <div class="case-title">Smart Grid Management</div>
+        <div class="case-desc">Utilities use real-time demand forecasts to optimize load balancing, prevent outages, and reduce reliance on expensive peaker plants.</div>
+        <div class="case-savings">↓ 18% peak demand reduction  •  $40M saved annually</div>
+      </div>
+    </div>
+    <div class="case-card fade-in">
+      <div class="case-icon" style="background:rgba(255,107,43,0.1)">🏭</div>
+      <div>
+        <div class="case-title">Industrial Manufacturing</div>
+        <div class="case-desc">Factories shift energy-intensive operations to low-cost periods identified by AI, cutting energy bills while maintaining production targets.</div>
+        <div class="case-savings">↓ 25% energy costs  •  Full ROI in 8 months</div>
+      </div>
+    </div>
+    <div class="case-card fade-in">
+      <div class="case-icon" style="background:rgba(0,229,160,0.1)">🌿</div>
+      <div>
+        <div class="case-title">Renewable Integration</div>
+        <div class="case-desc">Forecast solar and wind generation alongside demand to optimize battery storage dispatch and maintain grid stability with high renewables penetration.</div>
+        <div class="case-savings">↑ 35% renewable utilization  •  142 tons CO₂ saved/day</div>
+      </div>
+    </div>
+    <div class="case-card fade-in">
+      <div class="case-icon" style="background:rgba(124,58,237,0.1)">🏢</div>
+      <div>
+        <div class="case-title">Smart Building Automation</div>
+        <div class="case-desc">HVAC, lighting, and elevator systems auto-adjust based on predicted occupancy and energy price signals for maximum comfort with minimal waste.</div>
+        <div class="case-savings">↓ 30% building energy use  •  LEED Platinum certified</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-logo">
+        <div class="nav-logo-icon">⚡</div>ENERGYAI
+      </div>
+      <div class="footer-about">
+        Advanced machine learning platform for energy consumption prediction. Helping utilities, industries, and smart buildings achieve sustainability goals through accurate AI forecasting.
+      </div>
+    </div>
+    <div>
+      <div class="footer-heading">Platform</div>
+      <ul class="footer-links">
+        <li><a href="#">Dashboard</a></li>
+        <li><a href="#">API Access</a></li>
+        <li><a href="#">Model Registry</a></li>
+        <li><a href="#">Data Pipeline</a></li>
+        <li><a href="#">Alerts</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-heading">Solutions</div>
+      <ul class="footer-links">
+        <li><a href="#">Utilities</a></li>
+        <li><a href="#">Industrial</a></li>
+        <li><a href="#">Smart Buildings</a></li>
+        <li><a href="#">Renewables</a></li>
+        <li><a href="#">Cities</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-heading">Resources</div>
+      <ul class="footer-links">
+        <li><a href="#">Documentation</a></li>
+        <li><a href="#">Research Papers</a></li>
+        <li><a href="#">Case Studies</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Support</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 EnergyAI Platform — Built with ML & ❤️</span>
+    <span style="color:var(--teal2)">⚡ Live System — 99.97% Uptime</span>
+  </div>
+</footer>
+
+<script>
+// ── SPARKLINES ──────────────────────────────────────────
+function buildSparklines() {
+  ['spark1','spark2','spark3'].forEach((id, idx) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const vals = Array.from({length: 12}, () => 30 + Math.random() * 70);
+    el.innerHTML = vals.map((v, i) => {
+      const delay = i * 60;
+      return `<div class="spark-bar" style="height:${Math.round(v * 0.4)}px">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:${v}%;background:${idx===0?'var(--teal)':idx===1?'var(--orange)':'var(--green)'};border-radius:2px;animation:sparkGrow ${0.4 + i*0.05}s ${delay}ms ease both"></div>
+      </div>`;
+    }).join('');
+  });
+}
+buildSparklines();
+
+// ── HERO CHART ──────────────────────────────────────────
+const heroCtx = document.getElementById('heroChart').getContext('2d');
+const hours = Array.from({length: 24}, (_, i) => `${i}:00`);
+const actualData = [320,310,295,285,278,282,310,370,430,490,510,525,520,510,500,490,510,545,580,570,530,490,440,380];
+const predData = actualData.map(v => v + (Math.random() - 0.5) * 20);
+
+new Chart(heroCtx, {
+  type: 'line',
+  data: {
+    labels: hours,
+    datasets: [
+      {
+        label: 'Actual', data: actualData,
+        borderColor: 'rgba(0,180,230,0.9)', borderWidth: 2,
+        fill: true, backgroundColor: 'rgba(0,180,230,0.08)',
+        tension: 0.4, pointRadius: 0,
+      },
+      {
+        label: 'Predicted', data: predData,
+        borderColor: 'rgba(255,107,43,0.8)', borderWidth: 2,
+        borderDash: [5,3], fill: false,
+        tension: 0.4, pointRadius: 0,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 1500, easing: 'easeInOutQuart' },
+    plugins: {
+      legend: { labels: { color: '#6b8fa8', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 20 } }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(0,180,230,0.05)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 8 } },
+      y: { grid: { color: 'rgba(0,180,230,0.05)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 9 } } }
+    }
+  }
+});
+
+// ── MAIN DASHBOARD CHART ────────────────────────────────
+const mainCtx = document.getElementById('mainChart').getContext('2d');
+new Chart(mainCtx, {
+  type: 'line',
+  data: {
+    labels: hours,
+    datasets: [
+      {
+        label: 'Actual (MWh)', data: actualData,
+        borderColor: 'rgba(0,180,230,1)', borderWidth: 2,
+        fill: true, backgroundColor: 'rgba(0,180,230,0.06)',
+        tension: 0.4, pointRadius: 3, pointBackgroundColor: 'rgba(0,180,230,0.8)',
+        pointHoverRadius: 6,
+      },
+      {
+        label: 'Predicted (MWh)', data: predData,
+        borderColor: 'rgba(255,107,43,0.9)', borderWidth: 2,
+        borderDash: [6, 3], fill: false,
+        tension: 0.4, pointRadius: 0,
+      },
+      {
+        label: 'Upper Bound', data: predData.map(v => v + 25),
+        borderColor: 'rgba(255,107,43,0.15)', borderWidth: 1, fill: '+1',
+        backgroundColor: 'rgba(255,107,43,0.05)', tension: 0.4, pointRadius: 0,
+      },
+      {
+        label: 'Lower Bound', data: predData.map(v => v - 25),
+        borderColor: 'rgba(255,107,43,0.15)', borderWidth: 1, fill: false,
+        tension: 0.4, pointRadius: 0,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 1200 },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#6b8fa8', font: { family: 'JetBrains Mono', size: 10 }, filter: (i) => i.datasetIndex < 2 } },
+      tooltip: {
+        backgroundColor: 'rgba(6,14,26,0.95)',
+        borderColor: 'rgba(0,180,230,0.3)', borderWidth: 1,
+        titleColor: '#00d4ff', bodyColor: '#6b8fa8',
+        titleFont: { family: 'JetBrains Mono', size: 11 },
+        bodyFont: { family: 'JetBrains Mono', size: 10 },
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(0,180,230,0.04)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 12 } },
+      y: { grid: { color: 'rgba(0,180,230,0.04)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 9 } } }
+    }
+  }
+});
+
+// ── DONUT CHART ─────────────────────────────────────────
+const donutCtx = document.getElementById('donutChart').getContext('2d');
+new Chart(donutCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Coal', 'Natural Gas', 'Solar', 'Wind', 'Nuclear', 'Hydro'],
+    datasets: [{
+      data: [22, 31, 15, 12, 14, 6],
+      backgroundColor: ['#334155','rgba(0,180,230,0.8)','#FFB800','rgba(0,229,160,0.8)','rgba(124,58,237,0.8)','rgba(0,130,180,0.8)'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { color: '#6b8fa8', font: { family: 'JetBrains Mono', size: 9 }, padding: 10, boxWidth: 10 } }
+    },
+    cutout: '65%',
+  }
+});
+
+// ── WEEK CHART ──────────────────────────────────────────
+const weekCtx = document.getElementById('weekChart').getContext('2d');
+const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const weekActual = [850, 920, 880, 910, 970, 720, 640];
+const weekPred = [845, 915, 885, 905, 965, 728, 648];
+const weekPredHigh = weekPred.map(v => v + 45);
+const weekPredLow = weekPred.map(v => v - 45);
+
+new Chart(weekCtx, {
+  type: 'bar',
+  data: {
+    labels: days,
+    datasets: [
+      {
+        label: 'Actual (MW)', data: weekActual,
+        backgroundColor: 'rgba(0,180,230,0.4)', borderColor: 'rgba(0,180,230,0.8)', borderWidth: 1.5, borderRadius: 4,
+      },
+      {
+        label: 'Forecast (MW)', data: weekPred,
+        backgroundColor: 'rgba(255,107,43,0.4)', borderColor: 'rgba(255,107,43,0.8)', borderWidth: 1.5, borderRadius: 4, type: 'bar',
+      },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#6b8fa8', font: { family: 'JetBrains Mono', size: 10 } } },
+      tooltip: {
+        backgroundColor: 'rgba(6,14,26,0.95)',
+        borderColor: 'rgba(0,180,230,0.3)', borderWidth: 1,
+        titleColor: '#00d4ff', bodyColor: '#6b8fa8',
+        titleFont: { family: 'JetBrains Mono', size: 11 },
+        bodyFont: { family: 'JetBrains Mono', size: 10 },
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(0,180,230,0.04)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 10 } } },
+      y: { grid: { color: 'rgba(0,180,230,0.04)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 9 } } }
+    }
+  }
+});
+
+// ── RANGE INPUTS ──────────────────────────────────────
+document.getElementById('occupancy').addEventListener('input', function() {
+  document.getElementById('occLabel').textContent = this.value + '%';
+});
+document.getElementById('solarCoverage').addEventListener('input', function() {
+  document.getElementById('solarLabel').textContent = this.value + '%';
+});
+
+// ── PREDICTION LOGIC ──────────────────────────────────
+let resultChartInst = null;
+
+function runPrediction() {
+  const type = document.getElementById('buildingType').value;
+  const area = parseFloat(document.getElementById('floorArea').value) || 5000;
+  const temp = parseFloat(document.getElementById('temperature').value) || 25;
+  const occ = parseFloat(document.getElementById('occupancy').value) / 100;
+  const solar = parseFloat(document.getElementById('solarCoverage').value) / 100;
+  const time = document.getElementById('timeOfDay').value;
+  const day = document.getElementById('dayOfWeek').value;
+  const season = document.getElementById('season').value;
+
+  // Base consumption per m² by type
+  const baseMap = { office: 0.065, residential: 0.035, industrial: 0.12, retail: 0.08, hospital: 0.15, 'data-center': 0.30 };
+  const base = baseMap[type] || 0.065;
+
+  // Multipliers
+  const timeM = { morning: 0.9, afternoon: 1.1, evening: 1.0, night: 0.55 }[time] || 1;
+  const seasonM = { Spring: 0.9, Summer: 1.25, Autumn: 0.95, Winter: 1.15 }[season] || 1;
+  const dayM = (day === 'Saturday' || day === 'Sunday') ? 0.7 : 1.0;
+  const tempM = 1 + Math.abs(temp - 18) * 0.015;
+  const occM = 0.4 + occ * 0.6;
+  const solarReduction = solar * 0.25;
+
+  const kwhPerHour = base * area * timeM * seasonM * dayM * tempM * occM * (1 - solarReduction);
+  const totalKwh = Math.round(kwhPerHour * 24);
+
+  // Breakdown
+  const hvacPct = Math.round((40 + (Math.abs(temp - 18) * 0.5)) * 10) / 10;
+  const lightPct = Math.round((15 + occ * 10) * 10) / 10;
+  const equipPct = Math.round((25 + (type === 'data-center' ? 20 : 0)) * 10) / 10;
+  const otherPct = Math.round((100 - hvacPct - lightPct - equipPct) * 10) / 10;
+  const confidence = (94 + Math.random() * 4).toFixed(1);
+
+  // Update UI
+  document.getElementById('result-kwh').textContent = totalKwh.toLocaleString();
+  document.getElementById('result-unit').textContent = `kWh/day  ≈  ${(totalKwh / 24).toFixed(1)} kW average demand`;
+  document.getElementById('result-bars').style.display = 'flex';
+  document.getElementById('confidence-row').style.display = 'block';
+  document.getElementById('result-chart-wrap').style.display = 'block';
+  document.getElementById('conf-score').textContent = confidence + '%';
+
+  // Bar widths
+  setTimeout(() => {
+    document.getElementById('hvac-pct').textContent = hvacPct + '%';
+    document.getElementById('hvac-bar').style.width = hvacPct + '%';
+    document.getElementById('light-pct').textContent = lightPct + '%';
+    document.getElementById('light-bar').style.width = lightPct + '%';
+    document.getElementById('equip-pct').textContent = equipPct + '%';
+    document.getElementById('equip-bar').style.width = equipPct + '%';
+    document.getElementById('other-pct').textContent = Math.max(0, otherPct) + '%';
+    document.getElementById('other-bar').style.width = Math.max(0, otherPct) + '%';
+  }, 100);
+
+  // Hourly chart
+  const baseHourly = Array.from({length:24}, (_,h) => {
+    const tod = h < 6 ? 0.4 : h < 9 ? 0.75 + (h-6)*0.1 : h < 12 ? 1.0 : h < 14 ? 1.05 : h < 18 ? 0.95 : h < 21 ? 1.1 : 0.7;
+    return Math.round(kwhPerHour * tod * (0.95 + Math.random()*0.1));
+  });
+
+  const resultCtx = document.getElementById('resultChart').getContext('2d');
+  if (resultChartInst) resultChartInst.destroy();
+  resultChartInst = new Chart(resultCtx, {
+    type: 'line',
+    data: {
+      labels: hours,
+      datasets: [{
+        label: 'kWh/hr', data: baseHourly,
+        borderColor: 'rgba(0,180,230,0.9)', borderWidth: 2,
+        fill: true, backgroundColor: 'rgba(0,180,230,0.08)',
+        tension: 0.4, pointRadius: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 800 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(0,180,230,0.04)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 8 }, maxTicksLimit: 8 } },
+        y: { grid: { color: 'rgba(0,180,230,0.04)' }, ticks: { color: '#4a6a82', font: { family: 'JetBrains Mono', size: 8 } } }
+      }
+    }
+  });
+}
+
+// ── LIVE DATA ANIMATION ────────────────────────────────
+setInterval(() => {
+  const d = document.getElementById('live-demand');
+  if (d) d.textContent = (840 + Math.floor(Math.random() * 30)).toLocaleString();
+  const c = document.getElementById('live-conf');
+  if (c) c.textContent = (95.5 + Math.random() * 2).toFixed(1);
+}, 3000);
+
+// ── SCROLL ANIMATIONS ──────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Animate model bars when visible
+const barObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.querySelectorAll('.model-bar-fill').forEach(bar => {
+        const w = bar.dataset.width;
+        setTimeout(() => bar.style.width = w + '%', 200);
+      });
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('#models').forEach(el => barObserver.observe(el));
+
+// ── SMOOTH SCROLL ──────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// Run prediction on load for demo
+setTimeout(() => runPrediction(), 1200);
+</script>
+</body>
+</html>
